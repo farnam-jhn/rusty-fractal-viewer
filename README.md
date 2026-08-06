@@ -1,5 +1,8 @@
 # Rusty Fractal Viewer
-Rusty fractal viewer is a fractal viewer (only fractals that can be computed using escape time algorithm) written in rust.
+Rusty fractal viewer is a fractal viewer (only fractals that can be computed using escape time algorithm) written in rust.  
+[![Conventional Commit](https://img.shields.io/badge/Conventional%20Commits-1.0.0-green)](https://www.conventionalcommits.org/en/v1.0.0/) ![License](https://img.shields.io/badge/License-GNU_GPLv3-0052cc?logo=license)
+
+---
 
 ## Origin
 Before start of this project, i wrote the same thing in C++ using SFML Game engine, i archived the [old repo](https://github.com/farnam-jhn/FractalViewer) and started development of this project for two reasons, first is the meomory saftey and the second one is learning rust and dealing with the question "Why Rust?". 
@@ -22,7 +25,10 @@ and to run it:
 ```
 
 ## Gallery
-![v1](docs/resources/scv1.png)
+<img src=docs/resources/scv1.png width="40%">
 
 ## Docs
 Documentations are available at the [old repo](https://github.com/farnam-jhn/FractalViewer), at this point no other documentation is needed but later on i would add doumentation is needed.
+
+## License
+This project is licensed under GNU GPLv3. for more info checkout [License file](LICENSE)
