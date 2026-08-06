@@ -1,22 +1,66 @@
-name: Rust
+name: Release
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    tags:
+      - 'v*.*.*' # Triggers on tags like v1.0.0, v0.1.2, etc.
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  build-and-release:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write # Required to create releases and upload assets
 
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: rusty-fractal-viewer-linux
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: rusty-fractal-viewer-macos
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: rusty-fractal-viewer-windows.exe
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # Install Linux dependencies required by Macroquad/X11
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libx11-dev libxi-dev libgl1-mesa-dev pkg-config
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }} --verbose
+
+      - name: Prepare artifact (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          cp target/${{ matrix.target }}/release/rusty-fractal-viewer ./${{ matrix.artifact_name }}
+
+      - name: Prepare artifact (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          copy target\${{ matrix.target }}\release\rusty-fractal-viewer.exe .\\${{ matrix.artifact_name }}
+
+      - name: Upload binaries to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.artifact_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
