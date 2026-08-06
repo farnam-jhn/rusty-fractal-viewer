@@ -2,10 +2,7 @@ use crate::fractals::Fractal;
 use macroquad::prelude::*;
 use num_complex::Complex;
 
-pub fn compute_pixels(fractal: impl Fractal) -> Image {
-    let width = 400;
-    let height = 400;
-
+pub fn compute_pixels(fractal: impl Fractal, width: u16, height: u16) -> Image {
     // Create a black image with pre-allocated buffer memory
     let mut image = Image::gen_image_color(width, height, BLACK);
 
