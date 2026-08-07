@@ -138,3 +138,58 @@ impl Fractal for Julia {
         self.centerx
     }
 }
+// -- Burning Ship --
+pub struct BurningShip {
+    centerx: f64,
+    config: FractalConfig,
+}
+
+impl BurningShip {
+    pub fn new(max_iterations: i32, max_magnitude: f64) -> Self {
+        Self {
+            centerx: -0.5,
+            config: FractalConfig {
+                max_iterations,
+                max_magnitude,
+            },
+        }
+    }
+}
+
+impl Fractal for BurningShip {
+    fn config(&self) -> &FractalConfig {
+        &self.config
+    }
+
+    fn config_mut(&mut self) -> &mut FractalConfig {
+        &mut self.config
+    }
+
+    fn iterations_count(&self, point: Complex<f64>) -> i32 {
+        let mut z: Complex<f64> = Complex { re: 0.0, im: 0.0 };
+        let mut iterations: i32 = 0;
+
+        let threshold: f64 = self.config.max_magnitude * self.config.max_magnitude;
+
+        while iterations < self.config.max_iterations {
+            let temp = Complex::new(z.re.abs(), z.im.abs());
+            z = temp * temp + point;
+
+            if z.re * z.re + z.im * z.im > threshold {
+                break;
+            }
+
+            iterations += 1;
+        }
+
+        return iterations;
+    }
+
+    fn get_name() -> String {
+        format!("BurningShip")
+    }
+
+    fn get_centerx(&self) -> f64 {
+        self.centerx
+    }
+}
