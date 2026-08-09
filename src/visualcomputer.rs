@@ -3,6 +3,7 @@ use macroquad::prelude::*;
 use num_complex::Complex;
 use std::{cmp, vec};
 
+/// Pixel computer: iterates through the point and evaluates the pixel's color
 pub fn compute_pixels(fractal: impl Fractal, width: u16, height: u16) -> Image {
     // Create a black image with pre-allocated buffer memory
     let mut image = Image::gen_image_color(width, height, BLACK);
@@ -32,6 +33,7 @@ pub fn compute_pixels(fractal: impl Fractal, width: u16, height: u16) -> Image {
     image
 }
 
+/// Linear interpolation between two colors.
 fn lerp_color(color1: Color, color2: Color, t: f64) -> Color {
     let lerp = |x: f32, y: f32| ((x + (y - x)) as f64 * t) as f32;
 
@@ -43,6 +45,7 @@ fn lerp_color(color1: Color, color2: Color, t: f64) -> Color {
     }
 }
 
+/// Implementation of linear interpolation on colors
 fn smooth_color(pallete: &[Color], iterations: i32, max_iterations: i32) -> Color {
     if pallete.is_empty() {
         return BLACK;
