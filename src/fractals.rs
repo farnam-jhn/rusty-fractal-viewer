@@ -1,5 +1,6 @@
 use num_complex::{self, Complex};
 
+/// Used to configure maximum iterations and maximum magnitude.
 pub struct FractalConfig {
     pub max_iterations: i32,
     max_magnitude: f64,
@@ -14,6 +15,7 @@ impl Default for FractalConfig {
     }
 }
 
+/// Base trait for fractals, each fractal should implement this trait.
 pub trait Fractal {
     fn config(&self) -> &FractalConfig;
     fn config_mut(&mut self) -> &mut FractalConfig;
@@ -23,6 +25,8 @@ pub trait Fractal {
 }
 
 // -- Mandelbrot Set --
+//
+/// Mandelbrot set structure
 pub struct Mandelbrot {
     centerx: f64,
     config: FractalConfig,
@@ -57,6 +61,7 @@ impl Fractal for Mandelbrot {
 
         while iterations < self.config.max_iterations {
             z = Complex {
+                // Calculates z^2 + c
                 re: (z.re * z.re - z.im * z.im + point.re),
                 im: (2.0 * z.re * z.im + point.im),
             };
@@ -80,6 +85,8 @@ impl Fractal for Mandelbrot {
     }
 }
 // -- Julia Set --
+//
+/// Julia set structure
 pub struct Julia {
     constant: Complex<f64>,
     centerx: f64,
@@ -116,6 +123,7 @@ impl Fractal for Julia {
 
         while iterations < self.config.max_iterations {
             z = Complex {
+                // Calculates z^2 + c
                 re: (z.re * z.re - z.im * z.im + self.constant.re),
                 im: (2.0 * z.re * z.im + self.constant.im),
             };
@@ -139,6 +147,8 @@ impl Fractal for Julia {
     }
 }
 // -- Burning Ship --
+//
+/// Burning ship set structure
 pub struct BurningShip {
     centerx: f64,
     config: FractalConfig,
@@ -194,6 +204,8 @@ impl Fractal for BurningShip {
     }
 }
 // -- Tricorn --
+//
+/// Tricorn set structure
 pub struct Tricorn {
     centerx: f64,
     config: FractalConfig,
