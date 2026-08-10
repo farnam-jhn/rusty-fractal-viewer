@@ -139,7 +139,7 @@ impl Fractal for Julia {
     }
 
     fn get_name() -> String {
-        format!("Mandelbrot")
+        format!("Julia")
     }
 
     fn get_centerx(&self) -> f64 {
