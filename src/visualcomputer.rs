@@ -1,31 +1,132 @@
 use crate::fractals::Fractal;
 use macroquad::prelude::*;
 use num_complex::Complex;
-use std::{cmp, vec};
+use std::cmp;
 
-/// Pixel computer: iterates through the point and evaluates the pixel's color
-pub fn compute_pixels(fractal: impl Fractal, width: u16, height: u16) -> Image {
-    // Create a black image with pre-allocated buffer memory
+/// Viewport is used to compute a specific region
+#[derive(Debug, Clone, Copy)]
+pub struct Viewport {
+    pub center_re: f64,
+    pub center_im: f64,
+    pub zoom: f64,
+}
+
+impl Viewport {
+    pub fn new(center_re: f64, center_im: f64, zoom: f64) -> Self {
+        Self {
+            center_re,
+            center_im,
+            zoom: zoom.max(1e-12),
+        }
+    }
+
+    pub fn default_for_fractal(fractal: &impl Fractal) -> Self {
+        Self {
+            center_re: fractal.get_centerx(),
+            center_im: 0.0,
+            zoom: 1.0,
+        }
+    }
+
+    pub fn pan(&mut self, delta_re: f64, delta_im: f64) {
+        self.center_re += delta_re / self.zoom;
+        self.center_im += delta_im / self.zoom;
+    }
+
+    pub fn zoom_by(&mut self, factor: f64) {
+        self.zoom = (self.zoom * factor).max(1e-12);
+    }
+
+    /// Zoom in/out anchored at specific pixel coordinates (e.g. mouse cursor position)
+    pub fn zoom_at(&mut self, factor: f64, x: u16, y: u16, width: u16, height: u16) {
+        let point_before = self.pixel_to_complex(x, y, width, height);
+        self.zoom = (self.zoom * factor).max(1e-12);
+        let point_after = self.pixel_to_complex(x, y, width, height);
+        self.center_re += point_before.re - point_after.re;
+        self.center_im += point_before.im - point_after.im;
+    }
+
+    /// Map pixel coordinates (x, y) into complex plane (re, im) taking image aspect ratio into account
+    pub fn pixel_to_complex(&self, x: u16, y: u16, width: u16, height: u16) -> Complex<f64> {
+        let aspect_ratio = width as f64 / height as f64;
+        let scale = 3.0 / self.zoom;
+
+        let span_re = scale * aspect_ratio.max(1.0);
+        let span_im = scale * (1.0 / aspect_ratio).max(1.0);
+
+        let re = self.center_re + (x as f64 / width as f64 - 0.5) * span_re;
+        let im = self.center_im + (y as f64 / height as f64 - 0.5) * span_im;
+
+        Complex::new(re, im)
+    }
+}
+
+impl Default for Viewport {
+    fn default() -> Self {
+        Self {
+            center_re: -0.5,
+            center_im: 0.0,
+            zoom: 1.0,
+        }
+    }
+}
+
+/// Dynamic color palette definition supporting custom colors, phase offsets, and cycling
+#[derive(Debug, Clone)]
+pub struct Palette {
+    pub colors: Vec<Color>,
+}
+
+impl Palette {
+    pub fn new(colors: Vec<Color>) -> Self {
+        Self { colors }
+    }
+
+    /// Classic fractal gradient matching MandelbrotExplorer colorPalette
+    pub fn classic() -> Self {
+        Self {
+            colors: COLOR_PALETTE_CLASSIC.to_vec(),
+        }
+    }
+}
+
+impl Default for Palette {
+    fn default() -> Self {
+        Self::classic()
+    }
+}
+
+/// Dynamic render configuration combining Viewport mapping and Palette styling
+#[derive(Debug, Clone)]
+pub struct RenderConfig {
+    pub viewport: Viewport,
+    pub palette: Palette,
+}
+
+impl Default for RenderConfig {
+    fn default() -> Self {
+        Self {
+            viewport: Viewport::default(),
+            palette: Palette::default(),
+        }
+    }
+}
+
+/// Dynamic pixel computer supporting custom Viewport and Palette
+pub fn compute_pixels_dynamic(
+    fractal: &impl Fractal,
+    width: u16,
+    height: u16,
+    config: &RenderConfig,
+) -> Image {
     let mut image = Image::gen_image_color(width, height, BLACK);
-
-    // Coordinate bounds for mapping pixels to the complex plane
-    let re_min = fractal.get_centerx() - 1.5;
-    let re_max = fractal.get_centerx() + 1.5;
-    let im_min = -1.5;
-    let im_max = 1.5;
-
     let max_iter = fractal.config().max_iterations;
 
-    for x in 0..width {
-        for y in 0..height {
-            let re = re_min + (x as f64 / width as f64) * (re_max - re_min);
-            let im = im_min + (y as f64 / height as f64) * (im_max - im_min);
-
-            let point = Complex::new(re, im);
+    for y in 0..height {
+        for x in 0..width {
+            let point = config.viewport.pixel_to_complex(x, y, width, height);
             let iter = fractal.iterations_count(point);
-
-            let color = smooth_color(COLOR_PALLETE, iter, max_iter);
-
+            let color = smooth_color(&config.palette, iter, max_iter);
             image.set_pixel(x as u32, y as u32, color);
         }
     }
@@ -33,9 +134,14 @@ pub fn compute_pixels(fractal: impl Fractal, width: u16, height: u16) -> Image {
     image
 }
 
-/// Linear interpolation between two colors.
-fn lerp_color(color1: Color, color2: Color, t: f64) -> Color {
-    let lerp = |x: f32, y: f32| ((x + (y - x)) as f64 * t) as f32;
+/// Linear interpolation between two colors
+pub fn lerp_color(color1: Color, color2: Color, t: f64) -> Color {
+    let lerp = |x: f32, y: f32| -> f32 {
+        let x_u8 = (x * 255.0) as f64;
+        let y_u8 = (y * 255.0) as f64;
+        let res_u8 = (x_u8 + (y_u8 - x_u8) * t) as u8;
+        res_u8 as f32 / 255.0
+    };
 
     Color {
         r: lerp(color1.r, color2.r),
@@ -45,27 +151,27 @@ fn lerp_color(color1: Color, color2: Color, t: f64) -> Color {
     }
 }
 
-/// Implementation of linear interpolation on colors
-fn smooth_color(pallete: &[Color], iterations: i32, max_iterations: i32) -> Color {
-    if pallete.is_empty() {
+/// implementation of color interpolation
+pub fn smooth_color(palette: &Palette, iteration: i32, max_iterations: i32) -> Color {
+    if palette.colors.is_empty() {
         return BLACK;
     }
 
-    if iterations >= max_iterations {
-        return *pallete.last().unwrap();
+    if iteration >= max_iterations {
+        return *palette.colors.last().unwrap_or(&BLACK);
     }
 
-    let t: f64 = iterations as f64 / max_iterations as f64;
-    let scaled: f64 = t * (pallete.len() - 1) as f64;
+    let t = iteration as f64 / max_iterations as f64;
+    let scaled = t * (palette.colors.len() - 1) as f64;
 
-    let i: usize = scaled as usize;
-    let j: usize = cmp::min(i + 1, pallete.len() - 1);
+    let i = scaled as usize;
+    let j = cmp::min(i + 1, palette.colors.len() - 1);
+    let fraction = scaled - i as f64;
 
-    let fraction: f64 = scaled - i as f64;
-    return lerp_color(pallete[i], pallete[j], fraction);
+    lerp_color(palette.colors[i], palette.colors[j], fraction)
 }
 
-const COLOR_PALLETE: &[Color] = &[
+const COLOR_PALETTE_CLASSIC: &[Color] = &[
     Color::from_rgba(8, 10, 25, 255),
     Color::from_rgba(15, 20, 45, 255),
     Color::from_rgba(25, 35, 70, 255),
