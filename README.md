@@ -28,7 +28,12 @@ and to run it:
 <img src=docs/resources/scv1.png width="40%">
 
 ## Docs
-Documentations are available at the [old repo](https://github.com/farnam-jhn/FractalViewer), at this point no other documentation is needed but later on i would add doumentation is needed.
+Detailed documentation for this project is available in the [`docs/`](docs/) folder:
+- [Fractal viewer index](docs/Fractal%20viewer.md)
+- [The math behind](docs/The%20math%20behind.md)
+- [Rust Implementation](docs/Rust%20Implementation.md)
+- [Versions](docs/Versions.md)
+- [TODOs](docs/TODOs.md)
 
 ## License
-This project is licensed under GNU GPLv3. for more info checkout [License file](LICENSE)
+This project is licensed under GNU GPLv3. For more info check out the [License file](LICENSE).
